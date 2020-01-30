@@ -39,3 +39,7 @@ and use the 1.11 C library instead of latest
 - https://github.com/tensorflow/tensorflow/issues/35133
 - https://github.com/tensorflow/tensorflow/issues/34580
 - https://stackoverflow.com/a/59453744
+- https://hub.packtpub.com/object-detection-go-tensorflow/
+- https://godoc.org/github.com/tensorflow/tensorflow/tensorflow/go
+- https://github.com/tensorflow/tensorflow/blob/master/tensorflow/go/example_inception_inference_test.go
+- https://storage.googleapis.com/download.tensorflow.org/models/inception5h.zip
