@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 )
 
 func main() {
@@ -43,7 +44,7 @@ func main() {
 	// - Constructs another TensorFlow graph to normalize the image into a
 	//   form suitable for the model (for example, resizing the image)
 	// - Creates and executes a Session to obtain a Tensor in this normalized form.
-	modeldir := flag.String("dir", "", "Directory containing the trained model files. The directory will be created and the model downloaded into it if necessary")
+	modeldir := flag.String("dir", "", "Directory containing the trained model and labels")
 	imagefile := flag.String("image", "", "Path of a JPEG-image to extract labels for")
 	flag.Parse()
 	if *modeldir == "" || *imagefile == "" {
@@ -51,7 +52,7 @@ func main() {
 		return
 	}
 	// Load the serialized GraphDef from a file.
-	modelfile, labelsfile, err := modelFiles(*modeldir, "frozen_graph")
+	modelfile, labelsfile, err := modelFiles(*modeldir, "vanilla")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -83,10 +84,13 @@ func main() {
 	}
 	output, err := session.Run(
 		map[tf.Output]*tf.Tensor{
-			graph.Operation("input").Output(0): tensor,
+			graph.Operation("image_tensor").Output(0): tensor,
 		},
 		[]tf.Output{
-			graph.Operation("output").Output(0),
+			graph.Operation("detection_boxes").Output(0),
+			graph.Operation("detection_scores").Output(0),
+			graph.Operation("detection_classes").Output(0),
+			graph.Operation("num_detections").Output(0),
 		},
 		nil)
 	if err != nil {
@@ -95,7 +99,7 @@ func main() {
 	// output[0].Value() is a vector containing probabilities of
 	// labels for each image in the "batch". The batch size was 1.
 	// Find the most probably label index.
-	probabilities := output[0].Value().([][]float32)[0]
+	probabilities := output[1].Value().([][]float32)[0]
 	printBestLabel(probabilities, labelsfile)
 }
 
@@ -187,16 +191,19 @@ func constructGraphToNormalizeImage() (graph *tf.Graph, input, output tf.Output,
 		op.Sub(s,
 			op.ResizeBilinear(s,
 				op.ExpandDims(s,
-					op.Cast(s,
-						op.DecodeJpeg(s, input, op.DecodeJpegChannels(3)), tf.Float),
+					op.Cast(s, op.DecodeJpeg(s, input, op.DecodeJpegChannels(3)), tf.Float),
 					op.Const(s.SubScope("make_batch"), int32(0))),
 				op.Const(s.SubScope("size"), []int32{H, W})),
 			op.Const(s.SubScope("mean"), Mean)),
 		op.Const(s.SubScope("scale"), Scale))
+
+	// https://github.com/tensorflow/models/issues/1741#issuecomment-317501641
+	output = op.Cast(s.SubScope("final_resize"), output, tf.Uint8)
+
 	graph, err = s.Finalize()
 	return graph, input, output, err
 }
 
-func modelFiles(dir string, name string) (modelfile, labelsfile string, e error) {
-	return "", "", nil
+func modelFiles(dir string, name string) (m string, l string, e error) {
+	return filepath.Join(dir, fmt.Sprintf("%v.pb", name)), filepath.Join(dir, "labels.txt"), nil
 }

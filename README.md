@@ -3,6 +3,8 @@ go tensorflow
 
 example tensorflow object detection inference with golang bindings
 
+targeting the xview dataset and pretrained inception_v2 models
+
 ### Install TensorFlow for Go
 
 Instructions here https://www.tensorflow.org/install/lang_go
@@ -43,3 +45,10 @@ and use the 1.11 C library instead of latest
 - https://godoc.org/github.com/tensorflow/tensorflow/tensorflow/go
 - https://github.com/tensorflow/tensorflow/blob/master/tensorflow/go/example_inception_inference_test.go
 - https://storage.googleapis.com/download.tensorflow.org/models/inception5h.zip
+
+
+
+
+### errors
+-`Expects arg[0] to be uint8 but float is provided`
+  - https://github.com/tensorflow/models/issues/1741#issuecomment-317501641
