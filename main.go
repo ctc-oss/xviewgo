@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"flag"
 	"fmt"
 	tf "github.com/tensorflow/tensorflow/tensorflow/go"
@@ -44,6 +45,8 @@ func main() {
 	modelfile := flag.String("model", "", "Path to the trained model")
 	labelfile := flag.String("labels", "labels.txt", "Path of a class mapping dict")
 	imagefile := flag.String("image", "", "Path of a JPEG-image to extract labels for")
+	debugmode := flag.Bool("debug", false, "Enable debug mode")
+
 	flag.Parse()
 	if *modelfile == "" || *imagefile == "" || *labelfile == "" {
 		flag.Usage()
@@ -91,10 +94,6 @@ func main() {
 			SubImage(r image.Rectangle) image.Image
 		}).SubImage(image.Rect(w, h, w+W, h+H))
 
-		outputFile, _ := os.Create(fmt.Sprintf("/tmp/chip-%v.jpg", i))
-		jpeg.Encode(outputFile, chip, &jpeg.Options{Quality:100})
-		outputFile.Close()
-
 		chips[i] = Chip{
 			x,
 			y,
@@ -102,8 +101,15 @@ func main() {
 		}
 	}
 
-	for i, chip := range chips {
-		tensor, err := makeTensorFromImage(fmt.Sprintf("/tmp/chip-%v.jpg", i))
+	if *debugmode {
+		writeChips(chips)
+	}
+
+	for _, chip := range chips {
+		buf := bytes.Buffer{}
+		jpeg.Encode(&buf, chip.Im, nil)
+
+		tensor, err := loadImageTensor(buf.Bytes())
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -184,19 +190,15 @@ func printDetections(detects []Detect, labelsFile string) {
 	}
 }
 
-// Convert the image in filename to a Tensor suitable as input to the Inception model.
-func makeTensorFromImage(filename string) (*tf.Tensor, error) {
-	bytes, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
+func loadImageTensor(im []byte) (*tf.Tensor, error) {
 	// DecodeJpeg uses a scalar String-valued tensor as input.
-	tensor, err := tf.NewTensor(string(bytes))
+	tensor, err := tf.NewTensor(string(im))
 	if err != nil {
 		return nil, err
 	}
+
 	// Construct a graph to normalize the image
-	graph, input, output, err := constructGraphToNormalizeImage()
+	graph, input, output, err := prepareImageTensor()
 	if err != nil {
 		return nil, err
 	}
@@ -216,13 +218,24 @@ func makeTensorFromImage(filename string) (*tf.Tensor, error) {
 	return normalized[0], nil
 }
 
-func constructGraphToNormalizeImage() (graph *tf.Graph, input, output tf.Output, err error) {
+func prepareImageTensor() (graph *tf.Graph, input, output tf.Output, err error) {
 	s := op.NewScope()
 	input = op.Placeholder(s, tf.String)
+	// inception 4D tensor of shape
+	// [BatchSize, Height, Width, Colors=3]
+	// https://github.com/DIUx-xView/xview2018-baseline/blob/master/inference/det_util.py#L39
 	output = op.ExpandDims(s,
 		op.DecodeJpeg(s, input, op.DecodeJpegChannels(3)),
 		op.Const(s.SubScope("make_batch"), int32(0)))
 
 	graph, err = s.Finalize()
 	return graph, input, output, err
+}
+
+func writeChips(chips []Chip) {
+	for i, chip := range chips {
+		outputFile, _ := os.Create(fmt.Sprintf("/tmp/chip-%v.jpg", i))
+		jpeg.Encode(outputFile, chip.Im, &jpeg.Options{Quality:100})
+		outputFile.Close()
+	}
 }
