@@ -12,7 +12,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -43,19 +42,15 @@ type Detect struct {
 }
 
 func main() {
-	modeldir := flag.String("dir", "", "Directory containing the trained model and labels")
+	modelfile := flag.String("model", "", "Path to the trained model")
+	labelfile := flag.String("labels", "labels.txt", "Path of a class mapping dict")
 	imagefile := flag.String("image", "", "Path of a JPEG-image to extract labels for")
 	flag.Parse()
-	if *modeldir == "" || *imagefile == "" {
+	if *modelfile == "" || *imagefile == "" || *labelfile == "" {
 		flag.Usage()
 		return
 	}
-	// Load the serialized GraphDef from a file.
-	modelfile, labelsfile, err := modelFiles(*modeldir, "multires")
-	if err != nil {
-		log.Fatal(err)
-	}
-	model, err := ioutil.ReadFile(modelfile)
+	model, err := ioutil.ReadFile(*modelfile)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -144,7 +139,7 @@ func main() {
 					Confidence:  score,
 				})
 		}
-		printDetections(detects, labelsfile)
+		printDetections(detects, *labelfile)
 	}
 }
 
@@ -231,8 +226,4 @@ func constructGraphToNormalizeImage() (graph *tf.Graph, input, output tf.Output,
 
 	graph, err = s.Finalize()
 	return graph, input, output, err
-}
-
-func modelFiles(dir string, name string) (m string, l string, e error) {
-	return filepath.Join(dir, fmt.Sprintf("%v.pb", name)), filepath.Join(dir, "labels.txt"), nil
 }
