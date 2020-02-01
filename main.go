@@ -8,7 +8,6 @@ import (
 	"github.com/tensorflow/tensorflow/tensorflow/go/op"
 	"image"
 	"image/jpeg"
-	"image/png"
 	"io/ioutil"
 	"log"
 	"os"
@@ -92,8 +91,8 @@ func main() {
 			SubImage(r image.Rectangle) image.Image
 		}).SubImage(image.Rect(w, h, w+W, h+H))
 
-		outputFile, _ := os.Create(fmt.Sprintf("/tmp/chip-%v.png", i))
-		png.Encode(outputFile, chip)
+		outputFile, _ := os.Create(fmt.Sprintf("/tmp/chip-%v.jpg", i))
+		jpeg.Encode(outputFile, chip, &jpeg.Options{Quality:100})
 		outputFile.Close()
 
 		chips[i] = Chip{
@@ -104,7 +103,7 @@ func main() {
 	}
 
 	for i, chip := range chips {
-		tensor, err := makeTensorFromImage(fmt.Sprintf("/tmp/chip-%v.png", i))
+		tensor, err := makeTensorFromImage(fmt.Sprintf("/tmp/chip-%v.jpg", i))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -145,10 +144,10 @@ func main() {
 
 func transformBox(chipX, chipY int, box []float32) image.Rectangle {
 	//     chip pos   ->  world pos
-	mx := int(box[0]*W) + (chipX * W)
-	Mx := int(box[2]*W) + (chipX * W)
-	my := int(box[1]*H) + (chipY * H)
-	My := int(box[3]*H) + (chipY * H)
+	mx := int(box[1]*W) + (chipX * W)
+	Mx := int(box[3]*W) + (chipX * W)
+	my := int(box[0]*H) + (chipY * H)
+	My := int(box[2]*H) + (chipY * H)
 
 	return image.Rectangle{
 		Min: image.Point{
