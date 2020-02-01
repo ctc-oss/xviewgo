@@ -3,7 +3,9 @@ go tensorflow
 
 example tensorflow object detection inference with golang bindings
 
-targeting the xview dataset and pretrained inception_v2 models
+targeting the xview 2018 dataset and pretrained inception_v2 models
+
+see the xview 2018 baseline inference scrips for reference that guided this implementation
 
 ### Install TensorFlow for Go
 
@@ -45,8 +47,7 @@ and use the 1.11 C library instead of latest
 - https://godoc.org/github.com/tensorflow/tensorflow/tensorflow/go
 - https://github.com/tensorflow/tensorflow/blob/master/tensorflow/go/example_inception_inference_test.go
 - https://storage.googleapis.com/download.tensorflow.org/models/inception5h.zip
-
-
+- https://github.com/DIUx-xView/xview2018-baseline/tree/master/inference
 
 
 ### errors
