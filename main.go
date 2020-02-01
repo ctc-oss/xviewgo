@@ -22,9 +22,7 @@ import (
 // - The colors, represented as R, G, B in 1-byte each were converted to
 //   float using (value - Mean)/Scale.
 const (
-	H, W  = 300, 300
-	Mean  = float32(117)
-	Scale = float32(1)
+	H, W = 300, 300
 )
 
 type Chip struct {
@@ -34,11 +32,10 @@ type Chip struct {
 }
 
 type Detect struct {
-	Bounds      image.Rectangle
-	Class       int
-	Chip        *Chip
-	Description string
-	Confidence  float32
+	Bounds     image.Rectangle
+	Class      int
+	Chip       *Chip
+	Confidence float32
 }
 
 func main() {
@@ -53,24 +50,11 @@ func main() {
 		flag.Usage()
 		return
 	}
+
 	model, err := ioutil.ReadFile(*modelfile)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	// Construct an in-memory graph from the serialized form.
-	graph := tf.NewGraph()
-	if err := graph.Import(model, ""); err != nil {
-		log.Fatal(err)
-	}
-
-	// Create a session for inference over graph.
-	session, err := tf.NewSession(graph, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer session.Close()
-
 	file, err := os.Open(*imagefile)
 	if err != nil {
 		log.Fatalf("%v", err)
@@ -81,6 +65,22 @@ func main() {
 		log.Fatalf("%s: %v\n", *imagefile, err)
 	}
 
+	//
+	// all files are open, fire up TF
+	//
+
+	graph := tf.NewGraph()
+	if err := graph.Import(model, ""); err != nil {
+		log.Fatal(err)
+	}
+	session, err := tf.NewSession(graph, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer session.Close()
+
+	// width-number and height-number
+	// TODO;; this leaves an offset that is not included
 	wn := im.Bounds().Dx() / W
 	hn := im.Bounds().Dy() / H
 
@@ -95,11 +95,7 @@ func main() {
 			SubImage(r image.Rectangle) image.Image
 		}).SubImage(image.Rect(w, h, w+W, h+H))
 
-		chips[i] = Chip{
-			x,
-			y,
-			chip,
-		}
+		chips[i] = Chip{x, y, chip}
 	}
 
 	if *debugmode {
@@ -138,11 +134,10 @@ func main() {
 			class := classes[i]
 			detects = append(detects,
 				Detect{
-					Bounds:      transformBox(chip.X, chip.Y, boxes[i]),
-					Class:       int(class),
-					Chip:        &chip,
-					Description: "",
-					Confidence:  score,
+					Bounds:     transformBox(chip.X, chip.Y, boxes[i]),
+					Class:      int(class),
+					Chip:       &chip,
+					Confidence: score,
 				})
 		}
 		printDetections(detects, *labelfile, float32(*minbounds))
@@ -157,14 +152,8 @@ func transformBox(chipX, chipY int, box []float32) image.Rectangle {
 	My := int(box[2]*H) + (chipY * H)
 
 	return image.Rectangle{
-		Min: image.Point{
-			X: mx,
-			Y: my,
-		},
-		Max: image.Point{
-			X: Mx,
-			Y: My,
-		},
+		Min: image.Point{X: mx, Y: my,},
+		Max: image.Point{X: Mx, Y: My,},
 	}
 }
 
@@ -239,7 +228,7 @@ func prepareImageTensor() (graph *tf.Graph, input, output tf.Output, err error) 
 func writeChips(chips []Chip) {
 	for i, chip := range chips {
 		outputFile, _ := os.Create(fmt.Sprintf("/tmp/chip-%v.jpg", i))
-		jpeg.Encode(outputFile, chip.Im, &jpeg.Options{Quality:100})
+		jpeg.Encode(outputFile, chip.Im, &jpeg.Options{Quality: 100})
 		outputFile.Close()
 	}
 }
