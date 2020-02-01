@@ -46,6 +46,7 @@ func main() {
 	labelfile := flag.String("labels", "labels.txt", "Path of a class mapping dict")
 	imagefile := flag.String("image", "", "Path of a JPEG-image to extract labels for")
 	debugmode := flag.Bool("debug", false, "Enable debug mode")
+	minbounds := flag.Float64("min", 0.0, "Minimum confidence to output (WARNING: Will impact ppc)")
 
 	flag.Parse()
 	if *modelfile == "" || *imagefile == "" || *labelfile == "" {
@@ -144,7 +145,7 @@ func main() {
 					Confidence:  score,
 				})
 		}
-		printDetections(detects, *labelfile)
+		printDetections(detects, *labelfile, float32(*minbounds))
 	}
 }
 
@@ -167,7 +168,7 @@ func transformBox(chipX, chipY int, box []float32) image.Rectangle {
 	}
 }
 
-func printDetections(detects []Detect, labelsFile string) {
+func printDetections(detects []Detect, labelsFile string, min float32) {
 	file, err := os.Open(labelsFile)
 	if err != nil {
 		log.Fatal(err)
@@ -186,7 +187,10 @@ func printDetections(detects []Detect, labelsFile string) {
 	}
 
 	for _, d := range detects {
-		fmt.Printf("%v %v %v %v %v %v\n", d.Bounds.Min.X, d.Bounds.Min.Y, d.Bounds.Max.X, d.Bounds.Max.Y, d.Class, d.Confidence)
+		// squeeze is default; eliminating the 0 entries that inflate ppc
+		if d.Confidence > min {
+			fmt.Printf("%v %v %v %v %v %v\n", d.Bounds.Min.X, d.Bounds.Min.Y, d.Bounds.Max.X, d.Bounds.Max.Y, d.Class, d.Confidence)
+		}
 	}
 }
 
