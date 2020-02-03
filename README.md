@@ -7,6 +7,15 @@ targeting the xview 2018 dataset and pretrained inception_v2 models
 
 see the xview 2018 baseline inference scrips for reference that guided this implementation
 
+### run
+
+```shell script
+make
+detect -model xview-models/multires.pb -image xview/2122.jpg > predictions.txt
+score -predictions predictions.txt -groundtruth xview/labels/2122.geojson
+```
+
+
 ### Install TensorFlow for Go
 
 Instructions here https://www.tensorflow.org/install/lang_go
