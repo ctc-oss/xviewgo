@@ -48,6 +48,7 @@ and use the 1.11 C library instead of latest
 - https://github.com/tensorflow/tensorflow/blob/master/tensorflow/go/example_inception_inference_test.go
 - https://storage.googleapis.com/download.tensorflow.org/models/inception5h.zip
 - https://github.com/DIUx-xView/xview2018-baseline/tree/master/inference
+- https://pgaleone.eu/tensorflow/go/2017/05/29/understanding-tensorflow-using-go/
 
 
 ### errors
