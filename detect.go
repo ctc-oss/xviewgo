@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+	. "github.com/jw3/example-tensorflow-golang/common"
 	tf "github.com/tensorflow/tensorflow/tensorflow/go"
 	"github.com/tensorflow/tensorflow/tensorflow/go/op"
 	"image"
@@ -24,19 +25,6 @@ import (
 const (
 	H, W = 300, 300
 )
-
-type Chip struct {
-	X  int
-	Y  int
-	Im image.Image
-}
-
-type Detect struct {
-	Bounds     image.Rectangle
-	Class      int
-	Chip       *Chip
-	Confidence float32
-}
 
 func main() {
 	modelfile := flag.String("model", "", "Path to the trained model")
