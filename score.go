@@ -1,11 +1,10 @@
 package main
 
 import (
+	. "./common"
 	"encoding/csv"
 	"encoding/json"
 	"flag"
-	"fmt"
-	. "github.com/jw3/example-tensorflow-golang/common"
 	"image"
 	"io/ioutil"
 	"log"
@@ -20,14 +19,23 @@ type FeatureCollection struct {
 
 type Feature struct {
 	Properties struct {
+		Id     int    `json:"feature_id"`
 		Bounds string `json:"bounds_imcoords"`
 		Class  int    `json:"type_id"`
 	}
 }
 
+type Stats struct {
+	DetectionClasses   map[CID]int
+	GroundTruthClasses map[CID]int
+	AveragePrecision   map[CID]float32
+}
+
 func main() {
 	pFile := flag.String("predictions", "", "Path to predictions csv")
 	tFile := flag.String("groundtruth", "", "Path to ground-truth geojson")
+	minIou := flag.Float64("iou", .5, "IOU threshold")
+	minConf := flag.Float64("confidence", .5, "Confidence threshold")
 
 	flag.Parse()
 	if *pFile == "" || *tFile == "" {
@@ -55,10 +63,13 @@ func main() {
 
 	// (xmin,ymin,xmax,ymax)
 
-	println(len(ref.Features))
+	stats := Stats{
+		DetectionClasses:   make(map[CID]int),
+		GroundTruthClasses: make(map[CID]int),
+	}
 
 	detects := make([]Detect, len(ref.Features))
-	for _, splits := range predictions {
+	for i, splits := range predictions {
 		mx, _ := strconv.Atoi(splits[0])
 		my, _ := strconv.Atoi(splits[1])
 		Mx, _ := strconv.Atoi(splits[2])
@@ -66,62 +77,77 @@ func main() {
 		class, _ := strconv.Atoi(splits[4])
 		score, _ := strconv.ParseFloat(splits[5], 32)
 		detects = append(detects, Detect{
+			Id: DID(i),
 			Bounds: image.Rectangle{
 				Min: image.Point{X: mx, Y: my},
 				Max: image.Point{X: Mx, Y: My},
 			},
-			Class:      class,
+			Class:      CID(class),
 			Chip:       nil,
 			Confidence: float32(score),
 		})
+
+		stats.DetectionClasses[CID(class)]++
 	}
 
-	println(len(predictions))
-
-	truth := make([]Detect, len(predictions))
-	for _, rf := range ref.Features {
+	truth := make([]Truth, len(ref.Features))
+	for i, rf := range ref.Features {
 		splits := strings.Split(rf.Properties.Bounds, ",")
 		mx, _ := strconv.Atoi(splits[0])
 		my, _ := strconv.Atoi(splits[1])
 		Mx, _ := strconv.Atoi(splits[2])
 		My, _ := strconv.Atoi(splits[3])
-		truth = append(truth, Detect{
+		truth[i] = Truth{
+			Id: TID(rf.Properties.Id),
 			Bounds: image.Rectangle{
 				Min: image.Point{X: mx, Y: my},
 				Max: image.Point{X: Mx, Y: My},
 			},
-			Class:      rf.Properties.Class,
-			Chip:       nil,
-			Confidence: 0,
-		})
+			Class: CID(rf.Properties.Class),
+		}
+
+		stats.GroundTruthClasses[CID(rf.Properties.Class)]++
 	}
 
-	// calculate IOU;
-	intersects := 0
+	matched := make(map[TID]Match, len(truth))
+	unmatched := make(map[CID]int)
+
 	for _, d := range detects {
-		if d.Confidence > .3 {
+		if d.Confidence >= float32(*minConf) {
+			found := false
 			for _, t := range truth {
-				i := t.Bounds.Intersect(d.Bounds)
-				if !i.Empty() {
-					iz := i.Size()
-					ia := iz.X * iz.Y
+				if _, here := matched[t.Id]; !here {
+					i := t.Bounds.Intersect(d.Bounds)
+					if !i.Empty() {
+						// calculate IOU;
+						iz := i.Size()
+						ia := iz.X * iz.Y
 
-					dz := d.Bounds.Size()
-					tz := t.Bounds.Size()
-					da := dz.X * dz.Y
-					ta := tz.X * tz.Y
+						dz := d.Bounds.Size()
+						tz := t.Bounds.Size()
+						da := dz.X * dz.Y
+						ta := tz.X * tz.Y
 
-					iou := float32(ia) / float32(da+ta-ia)
+						iou := float32(ia) / float32(da+ta-ia)
+						if iou >= float32(*minIou) {
+							matched[t.Id] = Match{T: t, D: d, IoU: iou}
 
-					if iou > .1 {
-						fmt.Printf("%.2f\n", iou)
+							found = true
+							break
+						}
 					}
-
-					intersects++
 				}
+			}
+
+			if !found {
+				unmatched[d.Class]++
 			}
 		}
 	}
 
-	print(intersects)
+	cm, _ := GetConfusionMatrix(truth, matched, unmatched)
+
+	println(len(ref.Features))
+	println(len(predictions))
+	println(GetSummary(cm, stats.GroundTruthClasses))
 }

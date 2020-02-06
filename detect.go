@@ -123,7 +123,7 @@ func main() {
 			detects = append(detects,
 				Detect{
 					Bounds:     transformBox(chip.X, chip.Y, boxes[i]),
-					Class:      int(class),
+					Class:      CID(class),
 					Chip:       &chip,
 					Confidence: score,
 				})
