@@ -61,8 +61,6 @@ func main() {
 	var ref FeatureCollection
 	json.Unmarshal(tbytes, &ref)
 
-	// (xmin,ymin,xmax,ymax)
-
 	stats := Stats{
 		DetectionClasses:   make(map[CID]int),
 		GroundTruthClasses: make(map[CID]int),
@@ -70,18 +68,11 @@ func main() {
 
 	detects := make([]Detect, len(ref.Features))
 	for i, splits := range predictions {
-		mx, _ := strconv.Atoi(splits[0])
-		my, _ := strconv.Atoi(splits[1])
-		Mx, _ := strconv.Atoi(splits[2])
-		My, _ := strconv.Atoi(splits[3])
 		class, _ := strconv.Atoi(splits[4])
 		score, _ := strconv.ParseFloat(splits[5], 32)
 		detects = append(detects, Detect{
 			Id: DID(i),
-			Bounds: image.Rectangle{
-				Min: image.Point{X: mx, Y: my},
-				Max: image.Point{X: Mx, Y: My},
-			},
+			Bounds: ator(splits),
 			Class:      CID(class),
 			Chip:       nil,
 			Confidence: float32(score),
@@ -93,16 +84,9 @@ func main() {
 	truth := make([]Truth, len(ref.Features))
 	for i, rf := range ref.Features {
 		splits := strings.Split(rf.Properties.Bounds, ",")
-		mx, _ := strconv.Atoi(splits[0])
-		my, _ := strconv.Atoi(splits[1])
-		Mx, _ := strconv.Atoi(splits[2])
-		My, _ := strconv.Atoi(splits[3])
 		truth[i] = Truth{
 			Id: TID(rf.Properties.Id),
-			Bounds: image.Rectangle{
-				Min: image.Point{X: mx, Y: my},
-				Max: image.Point{X: Mx, Y: My},
-			},
+			Bounds: ator(splits),
 			Class: CID(rf.Properties.Class),
 		}
 
@@ -111,6 +95,7 @@ func main() {
 
 	matched := make(map[TID]Match, len(truth))
 	unmatched := make(map[CID]int)
+	fds := make([]Detect, 0)
 
 	for _, d := range detects {
 		if d.Confidence >= float32(*minConf) {
@@ -118,20 +103,16 @@ func main() {
 			for _, t := range truth {
 				if _, here := matched[t.Id]; !here {
 					i := t.Bounds.Intersect(d.Bounds)
+
+					// calculate IOU if overlapping
 					if !i.Empty() {
-						// calculate IOU;
-						iz := i.Size()
-						ia := iz.X * iz.Y
+						ia := area(i)
+						id := area(d.Bounds)
+						it := area(t.Bounds)
+						iou := float32(ia) / float32(id+it-ia)
 
-						dz := d.Bounds.Size()
-						tz := t.Bounds.Size()
-						da := dz.X * dz.Y
-						ta := tz.X * tz.Y
-
-						iou := float32(ia) / float32(da+ta-ia)
 						if iou >= float32(*minIou) {
 							matched[t.Id] = Match{T: t, D: d, IoU: iou}
-
 							found = true
 							break
 						}
@@ -142,6 +123,7 @@ func main() {
 			if !found {
 				// false-positive due to non intersecting box
 				// todo;; could also be a duplicate
+				fds = append(fds, d)
 				unmatched[d.Class]++
 			}
 		}
@@ -152,4 +134,22 @@ func main() {
 	println(len(ref.Features))
 	println(len(predictions))
 	println(GetSummary(cm))
+}
+
+func area(r image.Rectangle) int {
+	z := r.Size()
+	return z.X * z.Y
+}
+
+// (xmin,ymin,xmax,ymax)
+func ator(a []string) image.Rectangle {
+	mx, _ := strconv.Atoi(a[0])
+	my, _ := strconv.Atoi(a[1])
+	Mx, _ := strconv.Atoi(a[2])
+	My, _ := strconv.Atoi(a[3])
+
+	return image.Rectangle{
+		Min: image.Point{X: mx, Y: my},
+		Max: image.Point{X: Mx, Y: My},
+	}
 }
