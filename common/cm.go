@@ -7,6 +7,7 @@ package common
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"strconv"
 	"text/tabwriter"
 )
@@ -34,10 +35,13 @@ func GetConfusionMatrix(t map[CID]int, p map[TID]Match, fp map[CID]int) (Confusi
 	}
 
 	// FPs; actual is nothing, to predicted c
-	ret[FP] = Tp{T: 0, P: make(map[CID]int)}
+	fpc := 0
+	fpm := make(map[CID]int)
 	for cid, cnt := range fp {
-		ret[FP].P[cid] = cnt
+		fpc += cnt
+		fpm[cid] = cnt
 	}
+	ret[FP] = Tp{T: fpc, P: fpm}
 
 	// TPs; truth to predicted
 	for _, m := range p {
@@ -182,25 +186,37 @@ func GetMacroRecall(c ConfusionMatrix) float64 {
 // GetSummary returns a table of precision, recall, true positive,
 // false positive, and true negatives for each class for a given
 // ConfusionMatrix
-func GetSummary(c ConfusionMatrix, gt map[CID]int) string {
+func GetSummary(c ConfusionMatrix) string {
 	var buffer bytes.Buffer
 	w := new(tabwriter.Writer)
 	w.Init(&buffer, 0, 8, 0, '\t', 0)
 
-	fmt.Fprintln(w, "Reference Class\tTruth\tTrue Positives\tFalse Positives\tTrue Negatives\tPrecision\tRecall\tF1 Score")
-	fmt.Fprintln(w, "---------------\t-----\t--------------\t---------------\t--------------\t---------\t------\t--------")
+	fmt.Fprintln(w, "Reference Class\tTruth\tTrue Positives\tFalse Positives\tTrue Negatives\tFalse Negatives\tPrecision\tRecall\tF1 Score")
+	fmt.Fprintln(w, "---------------\t-----\t--------------\t---------------\t--------------\t---------\t---------\t------\t--------")
 
+	keys := make([]int, 0, len(c))
 	for k := range c {
-		t := gt[k]
+		if k != 0 {
+			keys = append(keys, int(k))
+		}
+	}
+	sort.Ints(keys)
+
+	for _, ik := range keys {
+		k := CID(ik)
+		//==============================
+		t := c[k].T
 		tp := GetTruePositives(k, c)
 		fp := GetFalsePositives(k, c)
 		tn := GetTrueNegatives(k, c)
+		fn := GetFalseNegatives(k, c)
 		prec := GetPrecision(k, c)
 		rec := GetRecall(k, c)
 		f1 := GetF1Score(k, c)
-		fmt.Fprintf(w, "%v\t%v\t%.0f\t%.0f\t%.0f\t%.3f\t%.3f\t%.4f\n", k, t, tp, fp, tn, prec, rec, f1)
+		fmt.Fprintf(w, "%v\t%v\t%.0f\t%.0f\t%.0f\t%.0f\t%.3f\t%.3f\t%.4f\n", k, t, tp, fp, tn, fn, prec, rec, f1)
 	}
 	w.Flush()
+	buffer.WriteString(fmt.Sprintf("False Positives:  %v\n", c[0].T))
 	buffer.WriteString(fmt.Sprintf("Overall accuracy: %.4f\n", GetAccuracy(c)))
 
 	return buffer.String()

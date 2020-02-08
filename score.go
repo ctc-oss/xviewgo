@@ -140,6 +140,8 @@ func main() {
 			}
 
 			if !found {
+				// false-positive due to non intersecting box
+				// todo;; could also be a duplicate
 				unmatched[d.Class]++
 			}
 		}
@@ -149,5 +151,5 @@ func main() {
 
 	println(len(ref.Features))
 	println(len(predictions))
-	println(GetSummary(cm, stats.GroundTruthClasses))
+	println(GetSummary(cm))
 }
