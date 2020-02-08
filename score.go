@@ -145,7 +145,7 @@ func main() {
 		}
 	}
 
-	cm, _ := GetConfusionMatrix(truth, matched, unmatched)
+	cm, _ := GetConfusionMatrix(stats.GroundTruthClasses, matched, unmatched)
 
 	println(len(ref.Features))
 	println(len(predictions))

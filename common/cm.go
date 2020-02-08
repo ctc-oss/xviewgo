@@ -11,29 +11,37 @@ import (
 	"text/tabwriter"
 )
 
-// map truth to predicted and count
-type ConfusionMatrix map[CID]map[CID]int
+const FP CID = 0
+
+// Truth to predictions
+type Tp struct {
+	T int
+	P map[CID]int
+}
+
+type ConfusionMatrix map[CID]Tp
 
 // GetConfusionMatrix builds a ConfusionMatrix from a set of reference (`ref')
 // and generate (`gen') Instances.
-func GetConfusionMatrix(ref []Truth, gen map[TID]Match, fp map[CID]int) (ConfusionMatrix, error) {
+func GetConfusionMatrix(t map[CID]int, p map[TID]Match, fp map[CID]int) (ConfusionMatrix, error) {
 	ret := make(ConfusionMatrix)
 
-	for _, t := range ref {
-		if _, ok := ret[t.Class]; !ok {
-			ret[t.Class] = make(map[CID]int)
+	for cid, cnt := range t {
+		ret[cid] = Tp{
+			T: cnt,
+			P: make(map[CID]int),
 		}
 	}
 
 	// FPs; actual is nothing, to predicted c
-	ret[0] = make(map[CID]int)
-	for c, v := range fp {
-		ret[0][c] = v
+	ret[FP] = Tp{T: 0, P: make(map[CID]int)}
+	for cid, cnt := range fp {
+		ret[FP].P[cid] = cnt
 	}
 
 	// TPs; truth to predicted
-	for _, m := range gen {
-		ret[m.T.Class][m.D.Class]++
+	for _, m := range p {
+		ret[m.T.Class].P[m.D.Class]++
 	}
 
 	return ret, nil
@@ -42,7 +50,7 @@ func GetConfusionMatrix(ref []Truth, gen map[TID]Match, fp map[CID]int) (Confusi
 // GetTruePositives returns the number of times an entry is
 // predicted successfully in a given ConfusionMatrix.
 func GetTruePositives(class CID, c ConfusionMatrix) float64 {
-	return float64(c[class][class])
+	return float64(c[class].P[class])
 }
 
 // GetFalsePositives returns the number of times an entry is
@@ -51,10 +59,10 @@ func GetFalsePositives(class CID, c ConfusionMatrix) float64 {
 	ret := 0
 	for k := range c {
 		if k != class {
-			ret += c[k][class]
+			ret += c[k].P[class]
 		}
 	}
-	ret += c[0][class]
+	ret += c[0].P[class]
 	return float64(ret)
 }
 
@@ -62,9 +70,9 @@ func GetFalsePositives(class CID, c ConfusionMatrix) float64 {
 // incorrectly predicted as something other than the given class.
 func GetFalseNegatives(class CID, c ConfusionMatrix) float64 {
 	ret := 0
-	for k := range c[class] {
+	for k := range c[class].P {
 		if k != class {
-			ret += c[class][k]
+			ret += c[class].P[k]
 		}
 	}
 	return float64(ret)
@@ -76,9 +84,9 @@ func GetTrueNegatives(class CID, c ConfusionMatrix) float64 {
 	ret := 0
 	for k := range c {
 		if k != class {
-			for l := range c[k] {
+			for l := range c[k].P {
 				if l != class {
-					ret += c[k][l]
+					ret += c[k].P[l]
 				}
 			}
 		}
@@ -100,8 +108,7 @@ func GetPrecision(class CID, c ConfusionMatrix) float64 {
 func GetRecall(class CID, c ConfusionMatrix) float64 {
 	// Fraction of relevant instances that are retrieved
 	truePositives := GetTruePositives(class, c)
-	falseNegatives := GetFalseNegatives(class, c)
-	return truePositives / (truePositives + falseNegatives)
+	return truePositives / float64(c[class].T)
 }
 
 // GetF1Score computes the harmonic mean of precision and recall
@@ -118,11 +125,11 @@ func GetAccuracy(c ConfusionMatrix) float64 {
 	correct := 0
 	total := 0
 	for i := range c {
-		for j := range c[i] {
+		for j := range c[i].P {
 			if i == j {
-				correct += c[i][j]
+				correct += c[i].P[j]
 			}
-			total += c[i][j]
+			total += c[i].T
 		}
 	}
 	return float64(correct) / float64(total)
@@ -228,7 +235,7 @@ func ShowConfusionMatrix(c ConfusionMatrix) string {
 		for _, v2 := range ref {
 			vv, _ := strconv.Atoi(v)
 			vv2, _ := strconv.Atoi(v2)
-			fmt.Fprintf(w, "%d\t", c[CID(vv)][CID(vv2)])
+			fmt.Fprintf(w, "%d\t", c[CID(vv)].P[CID(vv2)])
 		}
 		fmt.Fprintf(w, "\n")
 	}
