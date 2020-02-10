@@ -1,6 +1,9 @@
 package common
 
-import "image"
+import (
+	"image"
+	"strconv"
+)
 
 type TID int
 type DID int
@@ -30,4 +33,17 @@ type Match struct {
 	T   Truth
 	D   Detect
 	IoU float32
+}
+
+// (xmin,ymin,xmax,ymax)
+func SplitToRect(a []string) image.Rectangle {
+	mx, _ := strconv.Atoi(a[0])
+	my, _ := strconv.Atoi(a[1])
+	Mx, _ := strconv.Atoi(a[2])
+	My, _ := strconv.Atoi(a[3])
+
+	return image.Rectangle{
+		Min: image.Point{X: mx, Y: my},
+		Max: image.Point{X: Mx, Y: My},
+	}
 }

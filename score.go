@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"strconv"
 	"strings"
 )
 
@@ -26,7 +25,6 @@ type Feature struct {
 }
 
 type Stats struct {
-	DetectionClasses   map[CID]int
 	GroundTruthClasses map[CID]int
 	AveragePrecision   map[CID]float32
 }
@@ -61,36 +59,19 @@ func main() {
 	var ref FeatureCollection
 	json.Unmarshal(tbytes, &ref)
 
-	stats := Stats{
-		DetectionClasses:   make(map[CID]int),
-		GroundTruthClasses: make(map[CID]int),
-	}
-
-	detects := make([]Detect, len(ref.Features))
-	for i, splits := range predictions {
-		class, _ := strconv.Atoi(splits[4])
-		score, _ := strconv.ParseFloat(splits[5], 32)
-		detects = append(detects, Detect{
-			Id: DID(i),
-			Bounds: ator(splits),
-			Class:      CID(class),
-			Chip:       nil,
-			Confidence: float32(score),
-		})
-
-		stats.DetectionClasses[CID(class)]++
-	}
+	gtc := make(map[CID]int)
+	detects := ReadDetects(predictions)
 
 	truth := make([]Truth, len(ref.Features))
 	for i, rf := range ref.Features {
 		splits := strings.Split(rf.Properties.Bounds, ",")
 		truth[i] = Truth{
 			Id: TID(rf.Properties.Id),
-			Bounds: ator(splits),
+			Bounds: SplitToRect(splits),
 			Class: CID(rf.Properties.Class),
 		}
 
-		stats.GroundTruthClasses[CID(rf.Properties.Class)]++
+		gtc[CID(rf.Properties.Class)]++
 	}
 
 	matched := make(map[TID]Match, len(truth))
@@ -129,7 +110,7 @@ func main() {
 		}
 	}
 
-	cm, _ := GetConfusionMatrix(stats.GroundTruthClasses, matched, unmatched)
+	cm, _ := GetConfusionMatrix(gtc, matched, unmatched)
 
 	println(len(ref.Features))
 	println(len(predictions))
@@ -139,17 +120,4 @@ func main() {
 func area(r image.Rectangle) int {
 	z := r.Size()
 	return z.X * z.Y
-}
-
-// (xmin,ymin,xmax,ymax)
-func ator(a []string) image.Rectangle {
-	mx, _ := strconv.Atoi(a[0])
-	my, _ := strconv.Atoi(a[1])
-	Mx, _ := strconv.Atoi(a[2])
-	My, _ := strconv.Atoi(a[3])
-
-	return image.Rectangle{
-		Min: image.Point{X: mx, Y: my},
-		Max: image.Point{X: Mx, Y: My},
-	}
 }
