@@ -17,6 +17,7 @@ func main() {
 	imagefile := flag.String("image", "", "Path of a JPEG-image to extract labels for")
 	pFile := flag.String("predictions", "", "Path to predictions csv, or - for stdin")
 	minConf := flag.Float64("confidence", .5, "Confidence threshold")
+	debugmode := flag.Bool("debug", false, "Enable debug mode")
 
 	flag.Parse()
 	if *pFile == "" {
@@ -48,8 +49,20 @@ func main() {
 
 	dc.DrawImage(im, 0, 0)
 	dc.SetColor(colornames.Red)
-	dc.SetLineWidth(2)
 
+	if *debugmode {
+		dc.SetLineWidth(.1)
+		dc.SetColor(colornames.Green)
+		for x := 0; x < sz.X/300; x++ {
+			for y := 0; y < sz.Y/300; y++ {
+				dc.DrawRectangle(float64(x*300), float64(y*300), float64(x*300+300), float64(y*300+300))
+				dc.Stroke()
+			}
+		}
+	}
+
+	dc.SetLineWidth(2)
+	dc.SetColor(colornames.Red)
 	for _, det := range detects {
 		if det.Confidence > float32(*minConf) {
 			b := det.Bounds
