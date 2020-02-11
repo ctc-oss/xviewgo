@@ -43,13 +43,16 @@ export GOARM=7
 endif
 
 .DELETE_ON_ERROR:
-all: clean detect score
+all: clean detect score render
 
 detect:
 	go build -v -ldflags '${LDFLAGS}' -o ${DIST_DIR}/detect ./detect.go
 
 score:
 	go build -v -ldflags '${LDFLAGS}' -o ${DIST_DIR}/score ./score.go
+
+render:
+	go build -v -ldflags '${LDFLAGS}' -o ${DIST_DIR}/render ./render.go
 
 image: all
 	docker build -t $(IMAGE_PREFIX)goxview:$(IMAGE_TAG) .
@@ -58,3 +61,4 @@ image: all
 clean:
 	@if [ -f ${DIST_DIR}/detect ] ; then rm -v ${DIST_DIR}/detect ; fi
 	@if [ -f ${DIST_DIR}/score ] ; then rm -v ${DIST_DIR}/score ; fi
+	@if [ -f ${DIST_DIR}/render ] ; then rm -v ${DIST_DIR}/render ; fi
