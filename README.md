@@ -17,38 +17,20 @@ score -predictions predictions.txt -groundtruth xview/labels/2122.geojson
 
 
 ### Install TensorFlow for Go
-
-Instructions here https://www.tensorflow.org/install/lang_go
-
-... but those are broken:
-
-```shell script
-go get github.com/tensorflow/tensorflow/tensorflow/go
-```
-produces
-```text
-package github.com/tensorflow/tensorflow/tensorflow/go/genop/internal/proto/github.com/tensorflow/tensorflow/tensorflow/go/core: cannot find package "github.com/tensorflow/tensorflow/tensorflow/go/genop/internal/proto/github.com/tensorflow/tensorflow/tensorflow/go/core" in any of:
-        /usr/local/go/src/github.com/tensorflow/tensorflow/tensorflow/go/genop/internal/proto/github.com/tensorflow/tensorflow/tensorflow/go/core (from $GOROOT)
-        /go/src/github.com/tensorflow/tensorflow/tensorflow/go/genop/internal/proto/github.com/tensorflow/tensorflow/tensorflow/go/core (from $GOPATH)
-```
-
-```shell script
-cd $GOPATH/src/github.com/tensorflow/tensorflow/tensorflow/go
-git checkout r1.11
-git describe --tag
-# v1.11.0
-cd -
-go get github.com/tensorflow/tensorflow/tensorflow/go
-go test github.com/tensorflow/tensorflow/tensorflow/go
-# ok      github.com/tensorflow/tensorflow/tensorflow/go  (cached)
-```
-
-and use the 1.11 C library instead of latest
-- https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-linux-x86_64-1.11.0.tar.gz
-- https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-gpu-linux-x86_64-1.11.0.tar.gz
+- install recent protoc, eg. v3.11.3
+- download and install a 1.15.0 lib, one of
+  - https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-linux-x86_64-1.15.0.tar.gz
+  - https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-gpu-linux-x86_64-1.15.0.tar.gz
+- ldconfig
+- go get -d github.com/tensorflow/tensorflow/tensorflow/go
+- cd $GOPATH/src/github.com/tensorflow/tensorflow/tensorflow/go
+- git checkout v1.15.0
+- go generate github.com/tensorflow/tensorflow/tensorflow/go/op
 
 
 ### reference
+- https://www.tensorflow.org/install/lang_go
+- https://github.com/tensorflow/tensorflow/blob/master/tensorflow/go/README.md
 - https://github.com/tensorflow/tensorflow/issues/35133
 - https://github.com/tensorflow/tensorflow/issues/34580
 - https://stackoverflow.com/a/59453744
@@ -63,3 +45,4 @@ and use the 1.11 C library instead of latest
 ### errors
 -`Expects arg[0] to be uint8 but float is provided`
   - https://github.com/tensorflow/models/issues/1741#issuecomment-317501641
+  
