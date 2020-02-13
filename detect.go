@@ -1,11 +1,11 @@
 package main
 
 import (
+	. "./common"
 	"bufio"
 	"bytes"
 	"flag"
 	"fmt"
-	. "github.com/jw3/example-tensorflow-golang/common"
 	tf "github.com/tensorflow/tensorflow/tensorflow/go"
 	"github.com/tensorflow/tensorflow/tensorflow/go/op"
 	"image"
