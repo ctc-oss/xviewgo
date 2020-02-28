@@ -43,7 +43,7 @@ export GOARM=7
 endif
 
 .DELETE_ON_ERROR:
-all: clean detect score render
+all: clean detect score render yolo
 
 detect:
 	go build -v -ldflags '${LDFLAGS}' -o ${DIST_DIR}/detect ./detect.go
@@ -54,6 +54,9 @@ score:
 render:
 	go build -v -ldflags '${LDFLAGS}' -o ${DIST_DIR}/render ./render.go
 
+yolo:
+	go build -v -ldflags '${LDFLAGS}' -o ${DIST_DIR}/render-yolo ./render_yolo.go
+
 image: all
 	docker build -t $(IMAGE_PREFIX)goxview:$(IMAGE_TAG) .
 	@if [ "$(DOCKER_PUSH)" = "true" ] ; then  docker push $(IMAGE_PREFIX)goxview:$(IMAGE_TAG) ; fi
@@ -62,3 +65,4 @@ clean:
 	@if [ -f ${DIST_DIR}/detect ] ; then rm -v ${DIST_DIR}/detect ; fi
 	@if [ -f ${DIST_DIR}/score ] ; then rm -v ${DIST_DIR}/score ; fi
 	@if [ -f ${DIST_DIR}/render ] ; then rm -v ${DIST_DIR}/render ; fi
+	@if [ -f ${DIST_DIR}/render-yolo ] ; then rm -v ${DIST_DIR}/render-yolo ; fi

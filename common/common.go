@@ -47,3 +47,11 @@ func SplitToRect(a []string) image.Rectangle {
 		Max: image.Point{X: Mx, Y: My},
 	}
 }
+
+type YoloLabel struct {
+	Class CID
+	X     float64
+	Y     float64
+	W     float64
+	H     float64
+}
