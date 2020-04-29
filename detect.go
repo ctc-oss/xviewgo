@@ -44,14 +44,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	file, err := os.Open(*imagefile)
+	im, err := LoadJpeg(*imagefile)
 	if err != nil {
 		log.Fatalf("%v", err)
-	}
-
-	im, err := jpeg.Decode(file)
-	if err != nil {
-		log.Fatalf("%s: %v\n", *imagefile, err)
 	}
 
 	//

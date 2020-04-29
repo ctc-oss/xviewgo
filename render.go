@@ -4,11 +4,11 @@ import (
 	. "./common"
 	"encoding/csv"
 	"flag"
+	"fmt"
 	"github.com/fogleman/gg"
 	"golang.org/x/image/colornames"
 	"image"
 	"image/draw"
-	"image/jpeg"
 	"log"
 	"os"
 )
@@ -25,19 +25,14 @@ func main() {
 	)
 
 	flag.Parse()
-	if *pFile == "" {
+	if *pFile == "" || *imagefile == "" {
 		flag.Usage()
 		return
 	}
 
-	file, err := os.Open(*imagefile)
+	im, err := LoadJpeg(*imagefile)
 	if err != nil {
 		log.Fatalf("%v", err)
-	}
-
-	im, err := jpeg.Decode(file)
-	if err != nil {
-		log.Fatalf("%s: %v\n", *imagefile, err)
 	}
 
 	var f *os.File
@@ -54,15 +49,14 @@ func main() {
 	csvr.Comma = ' '
 	predictions, _ := csvr.ReadAll()
 	detects := ReadDetects(predictions)
+	log.Println("detections: ", len(predictions))
 
 	rendered := image.NewRGBA(im.Bounds())
 	draw.Draw(rendered, im.Bounds(), im, image.ZP, draw.Src)
 
 	sz := im.Bounds().Size()
 	dc := gg.NewContext(sz.X, sz.Y)
-
 	dc.DrawImage(im, 0, 0)
-	dc.SetColor(colornames.Red)
 
 	if *debugmode {
 		dc.SetLineWidth(.1)
@@ -88,5 +82,5 @@ func main() {
 	if err := dc.SavePNG(*outfile); err != nil {
 		log.Fatalf("%s: %v\n", *pFile, err)
 	}
-	log.Println("rendered to %s", *outfile)
+	log.Println(fmt.Sprint("rendered to file://", *outfile))
 }

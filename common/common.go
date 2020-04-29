@@ -1,8 +1,14 @@
 package common
 
 import (
+	"bytes"
+	"golang.org/x/image/tiff"
 	"image"
+	"image/jpeg"
+	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 )
 
 type TID int
@@ -54,4 +60,38 @@ type YoloLabel struct {
 	Y     float64
 	W     float64
 	H     float64
+}
+
+func LoadJpeg(imagefile string) (image.Image, error) {
+	file, err := os.Open(imagefile)
+	if err != nil {
+		return nil, err
+	}
+
+	ext := strings.ToLower(filepath.Ext(imagefile))
+
+	var im image.Image
+	if ext == "tiff" {
+		im, err = tiff.Decode(file)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		im, _, err = image.Decode(file)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	buf := new(bytes.Buffer)
+	if err := jpeg.Encode(buf, im, nil); err != nil {
+		return nil, err
+	}
+
+	ret, err := jpeg.Decode(buf)
+	if err != nil {
+		return nil, err
+	}
+
+	return ret, nil
 }
