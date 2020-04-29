@@ -19,6 +19,10 @@ func main() {
 	minConf := flag.Float64("confidence", .5, "Confidence threshold")
 	debugmode := flag.Bool("debug", false, "Enable debug mode")
 
+	const (
+		H, W = 544, 544
+	)
+
 	flag.Parse()
 	if *pFile == "" {
 		flag.Usage()
@@ -53,9 +57,9 @@ func main() {
 	if *debugmode {
 		dc.SetLineWidth(.1)
 		dc.SetColor(colornames.Green)
-		for x := 0; x < sz.X/300; x++ {
-			for y := 0; y < sz.Y/300; y++ {
-				dc.DrawRectangle(float64(x*300), float64(y*300), float64(x*300+300), float64(y*300+300))
+		for x := 0; x < sz.X/W; x++ {
+			for y := 0; y < sz.Y/H; y++ {
+				dc.DrawRectangle(float64(x*W), float64(y*H), float64(x*W+W), float64(y*H+H))
 				dc.Stroke()
 			}
 		}
