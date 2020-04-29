@@ -13,6 +13,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -163,6 +164,9 @@ func printDetections(detects []Detect, labelsFile string, min float32) {
 		labels[id] = splits[1]
 	}
 
+	sort.SliceStable(detects, func(i, j int) bool {
+		return detects[i].Confidence > detects[j].Confidence
+	})
 	for _, d := range detects {
 		// squeeze is default; eliminating the 0 entries that inflate ppc
 		if d.Confidence > min {
