@@ -24,7 +24,7 @@ import (
 // - The colors, represented as R, G, B in 1-byte each were converted to
 //   float using (value - Mean)/Scale.
 const (
-	H, W = 300, 300
+	H, W = 544, 544
 )
 
 func main() {
@@ -136,8 +136,8 @@ func transformBox(chipX, chipY int, box []float32) image.Rectangle {
 	My := int(box[2]*H) + (chipY * H)
 
 	return image.Rectangle{
-		Min: image.Point{X: mx, Y: my,},
-		Max: image.Point{X: Mx, Y: My,},
+		Min: image.Point{X: mx, Y: my},
+		Max: image.Point{X: Mx, Y: My},
 	}
 }
 
