@@ -18,6 +18,7 @@ func main() {
 	pFile := flag.String("predictions", "-", "Path to predictions csv, or - for stdin")
 	minConf := flag.Float64("confidence", .5, "Confidence threshold")
 	debugmode := flag.Bool("debug", false, "Enable debug mode")
+	outfile := flag.String("outfile", "/tmp/rendered.png", "Path to write rendered image file")
 
 	const (
 		H, W = 544, 544
@@ -83,5 +84,9 @@ func main() {
 			dc.Stroke()
 		}
 	}
-	dc.SavePNG("/tmp/rendered.png")
+
+	if err := dc.SavePNG(*outfile); err != nil {
+		log.Fatalf("%s: %v\n", *pFile, err)
+	}
+	log.Println("rendered to %s", *outfile)
 }
