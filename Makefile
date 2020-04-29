@@ -17,7 +17,7 @@ override LDFLAGS += \
 
 #  docker image publishing options
 DOCKER_PUSH?=false
-IMAGE_NAMESPACE?=jwiii
+IMAGE_NAMESPACE?=ctcoss
 IMAGE_TAG?=latest
 GOARCH?=amd64
 CGO_ENABLED?=0
@@ -25,7 +25,7 @@ GOOS?=linux
 
 ifeq (${DOCKER_PUSH},true)
 ifndef IMAGE_NAMESPACE
-$(error IMAGE_NAMESPACE must be set to push images (e.g. IMAGE_NAMESPACE=argoproj))
+$(error IMAGE_NAMESPACE must be set to push images (e.g. IMAGE_NAMESPACE=ctcoss))
 endif
 endif
 
