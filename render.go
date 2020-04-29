@@ -15,7 +15,7 @@ import (
 
 func main() {
 	imagefile := flag.String("image", "", "Path of a JPEG-image to extract labels for")
-	pFile := flag.String("predictions", "", "Path to predictions csv, or - for stdin")
+	pFile := flag.String("predictions", "-", "Path to predictions csv, or - for stdin")
 	minConf := flag.Float64("confidence", .5, "Confidence threshold")
 	debugmode := flag.Bool("debug", false, "Enable debug mode")
 
@@ -39,7 +39,16 @@ func main() {
 		log.Fatalf("%s: %v\n", *imagefile, err)
 	}
 
-	f, _ := os.Open(*pFile)
+	var f *os.File
+	if *pFile == "-" {
+		f = os.Stdin
+	} else {
+		f, err = os.Open(*pFile)
+		if err != nil {
+			log.Fatalf("%s: %v\n", *pFile, err)
+		}
+	}
+
 	csvr := csv.NewReader(f)
 	csvr.Comma = ' '
 	predictions, _ := csvr.ReadAll()
