@@ -18,7 +18,7 @@ func main() {
 	pFile := flag.String("predictions", "-", "Path to predictions csv, or - for stdin")
 	minConf := flag.Float64("confidence", .5, "Confidence threshold")
 	debugmode := flag.Bool("debug", false, "Enable debug mode")
-	outfile := flag.String("outfile", "/tmp/rendered.png", "Path to write rendered image file")
+	outdir := flag.String("outdir", os.Getenv("PWD"), "Dir to write rendered image file")
 
 	const (
 		H, W = 544, 544
@@ -79,8 +79,10 @@ func main() {
 		}
 	}
 
-	if err := dc.SavePNG(*outfile); err != nil {
+	_, ofile, _ := SplitPath(*imagefile)
+	output := fmt.Sprintf("%s/%s-detects.jpg", *outdir, ofile)
+	if err := dc.SaveJPG(output, 75); err != nil {
 		log.Fatalf("%s: %v\n", *pFile, err)
 	}
-	log.Println(fmt.Sprint("rendered to file://", *outfile))
+	log.Println(fmt.Sprint("rendered to file://", output))
 }

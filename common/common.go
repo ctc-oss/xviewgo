@@ -6,7 +6,9 @@ import (
 	"image"
 	"image/jpeg"
 	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 )
 
 type TID int
@@ -58,6 +60,13 @@ type YoloLabel struct {
 	Y     float64
 	W     float64
 	H     float64
+}
+
+func SplitPath(fname string) (string, string, string) {
+	d := filepath.Dir(fname)
+	x := filepath.Ext(fname)
+	f := strings.TrimSuffix(filepath.Base(fname), x)
+	return d, f, x
 }
 
 func LoadJpeg(imagefile string) (image.Image, error) {
