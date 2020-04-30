@@ -8,6 +8,7 @@ import (
 	"fmt"
 	tf "github.com/tensorflow/tensorflow/tensorflow/go"
 	"github.com/tensorflow/tensorflow/tensorflow/go/op"
+	"golang.org/x/image/draw"
 	"image"
 	"image/jpeg"
 	"io/ioutil"
@@ -23,6 +24,8 @@ import (
 // - The model was trained after with images scaled to 224x224 pixels.
 // - The colors, represented as R, G, B in 1-byte each were converted to
 //   float using (value - Mean)/Scale.
+
+// trained chip size
 const (
 	H, W = 544, 544
 )
@@ -30,15 +33,19 @@ const (
 func main() {
 	modelfile := flag.String("model", "", "Path to the trained model")
 	labelfile := flag.String("labels", "labels.txt", "Path of a class mapping dict")
-	imagefile := flag.String("image", "", "Path of a JPEG-image to extract labels for")
+	imagefile := flag.String("image", "", "Image to be processed")
 	debugmode := flag.Bool("debug", false, "Enable debug mode")
 	minbounds := flag.Float64("min", 0.0, "Minimum confidence to output (WARNING: Will impact ppc)")
+	chipsize := flag.Int("chip", 544, "Chip dimension")
 
 	flag.Parse()
 	if *modelfile == "" || *imagefile == "" || *labelfile == "" {
 		flag.Usage()
 		return
 	}
+
+	chipW := *chipsize
+	chipH := *chipsize
 
 	model, err := ioutil.ReadFile(*modelfile)
 	if err != nil {
@@ -65,20 +72,26 @@ func main() {
 
 	// width-number and height-number
 	// TODO;; this leaves an offset that is not included
-	wn := im.Bounds().Dx() / W
-	hn := im.Bounds().Dy() / H
+	wn := im.Bounds().Dx() / chipW
+	hn := im.Bounds().Dy() / chipH
 
 	chips := make([]Chip, wn*hn)
 	for i := 0; i < wn*hn; i++ {
 		x := i % wn
 		y := i / wn
-		w := x * W
-		h := y * H
+		w := x * chipW
+		h := y * chipH
 
+		chipBounds := image.Rect(w, h, w+chipW, h+chipH)
 		chip := im.(interface {
 			SubImage(r image.Rectangle) image.Image
-		}).SubImage(image.Rect(w, h, w+W, h+H))
+		}).SubImage(chipBounds)
 
+		if chipW != W {
+			scaled := image.NewRGBA(image.Rect(0, 0, W, H))
+			draw.BiLinear.Scale(scaled, scaled.Bounds(), chip, chip.Bounds(), draw.Over, nil)
+			chip = scaled
+		}
 		chips[i] = Chip{x, y, chip}
 	}
 
@@ -86,6 +99,12 @@ func main() {
 		writeChips(chips)
 	}
 
+	ratio := float32(chipW) / float32(W)
+	if ratio != 1.0 {
+		log.Println("Scaling ratio:", ratio)
+	}
+
+	detects := make([]Detect, 1)
 	for _, chip := range chips {
 		buf := bytes.Buffer{}
 		jpeg.Encode(&buf, chip.Im, nil)
@@ -113,19 +132,19 @@ func main() {
 		scores := output[1].Value().([][]float32)[0]
 		classes := output[2].Value().([][]float32)[0]
 
-		detects := make([]Detect, 1)
 		for i, score := range scores {
 			class := classes[i]
+			bounds := transformBox(chip.X, chip.Y, boxes[i])
 			detects = append(detects,
 				Detect{
-					Bounds:     transformBox(chip.X, chip.Y, boxes[i]),
+					Bounds:     ResizeRect(bounds, ratio),
 					Class:      CID(class),
 					Chip:       &chip,
 					Confidence: score,
 				})
 		}
-		printDetections(detects, *labelfile, float32(*minbounds))
 	}
+	printDetections(detects, *labelfile, float32(*minbounds))
 }
 
 func transformBox(chipX, chipY int, box []float32) image.Rectangle {

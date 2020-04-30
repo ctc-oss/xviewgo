@@ -91,3 +91,14 @@ func LoadJpeg(imagefile string) (image.Image, error) {
 
 	return jpeg.Decode(buf)
 }
+
+func ResizeRect(rect image.Rectangle, ratio float32) image.Rectangle {
+	if ratio == 1.0 {
+		return rect
+	}
+	x0 := float32(rect.Min.X) * ratio
+	y0 := float32(rect.Min.Y) * ratio
+	x1 := float32(rect.Max.X) * ratio
+	y1 := float32(rect.Max.Y) * ratio
+	return image.Rect(int(x0), int(y0), int(x1), int(y1))
+}
