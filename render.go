@@ -59,8 +59,8 @@ func main() {
 	dc.DrawImage(im, 0, 0)
 
 	if *debugmode {
-		dc.SetLineWidth(.1)
-		dc.SetColor(colornames.Green)
+		dc.SetLineWidth(.5)
+		dc.SetColor(colornames.Yellow)
 		for x := 0; x < sz.X/W; x++ {
 			for y := 0; y < sz.Y/H; y++ {
 				dc.DrawRectangle(float64(x*W), float64(y*H), float64(x*W+W), float64(y*H+H))
